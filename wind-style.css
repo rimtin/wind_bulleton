@@ -142,10 +142,11 @@ body {
 
 svg {
   width: 100%;
-  height: 330px;
+  height: 460px;
   border: 1px solid #ccc;
   background: #fff;
   display: block;
+  overflow: visible;
 }
 
 .map-legend {

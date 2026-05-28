@@ -23,6 +23,7 @@ function buildWindTable() {
         <td>${area}</td>
         <td>${createWindDropdown()}</td>
         <td>${createWindDropdown()}</td>
+        <td>${createWindDropdown()}</td>
       `;
 
       tbody.appendChild(tr);

@@ -4,6 +4,13 @@
   box-sizing: border-box;
 }
 
+.state-cell{
+  font-weight: bold;
+  vertical-align: middle;
+  text-align: center;
+  background: #f5f5f5;
+}
+
 body {
   font-family: Arial, sans-serif;
   background: #f2f2f2;

@@ -76,7 +76,7 @@ function drawWindMap(svgId) {
 
   const path = d3.geoPath().projection(projection);
 
-  d3.json("indian_met_zones.geojson")
+  d3.json("indian_met_zones (1).geojson")
     .then(data => {
       svg.selectAll("path")
         .data(data.features)

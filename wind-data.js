@@ -21,7 +21,6 @@ const windForecastData = [
 
 function updateForecastDate() {
   const now = new Date();
-
   const formatted = now.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "long",

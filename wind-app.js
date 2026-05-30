@@ -135,16 +135,17 @@ async function drawWindMap(svgId) {
   const svg = d3.select(svgId);
   svg.selectAll("*").remove();
 
-  const width = 360;
-  const height = 460;
+  const width = 860;
+  const height = 520;
 
   svg.attr("viewBox", `0 0 ${width} ${height}`);
 
   try {
     const data = await loadGeoJSON();
 
-    const projection = d3.geoMercator()
-      .fitExtent([[10, 10], [width - 10, height - 10]], data);
+    const projection = d3.geoIdentity()
+      .reflectY(true)
+      .fitExtent([[30, 30], [width - 30, height - 30]], data);
 
     const path = d3.geoPath().projection(projection);
 

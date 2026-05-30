@@ -144,7 +144,7 @@ async function drawWindMap(svgId) {
     const data = await loadGeoJSON();
 
     const projection = d3.geoMercator()
-      .fitExtent([[20, 20], [width - 20, height - 20]], data);
+      .fitExtent([[10, 10], [width - 10, height - 10]], data);
 
     const path = d3.geoPath().projection(projection);
 

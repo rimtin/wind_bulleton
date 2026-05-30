@@ -11,20 +11,12 @@ function buildWindTable() {
   tbody.innerHTML = "";
 
   windForecastData.forEach(item => {
-
     item.areas.forEach((area, index) => {
-
       const tr = document.createElement("tr");
 
-      let stateCell = "";
-
-      if (index === 0) {
-        stateCell = `
-          <td rowspan="${item.areas.length}" class="state-cell">
-            ${item.state}
-          </td>
-        `;
-      }
+      const stateCell = index === 0
+        ? `<td rowspan="${item.areas.length}" class="state-cell">${item.state}</td>`
+        : "";
 
       tr.innerHTML = `
         ${stateCell}
@@ -39,6 +31,40 @@ function buildWindTable() {
   });
 }
 
+const geoNameMap = {
+  "Konkan & Goa": "Konkan & Goa",
+  "Madhya Maharashtra": "Madhya Maharashtra",
+  "Marathwada": "Marathwada",
+  "Vidarbha": "Vidarbha",
+  "West MP": "West Madhya Pradesh",
+  "East MP": "East Madhya Pradesh",
+  "West Rajasthan": "West Rajasthan",
+  "East Rajasthan": "East Rajasthan",
+  "Saurashtra & Kutch": "Saurashtra & Kachh",
+  "Gujarat Region": "Gujarat region",
+  "Andhra Pradesh": "Coastal Andhra Pradesh",
+  "North Interior Karnataka": "N.I. Karnataka",
+  "South Interior Karnataka": "S.I. Karnataka",
+  "Tamil Nadu": "Tamil Nadu & Puducherry"
+};
+
+function getSubdivisionColor(geoName, dayColumnIndex) {
+  const rows = document.querySelectorAll("#wind-table-body tr");
+
+  for (const row of rows) {
+    const area = row.children[row.children.length - 4]?.textContent.trim();
+    const mappedGeoName = geoNameMap[area];
+
+    if (mappedGeoName === geoName) {
+      const selectCell = row.children[dayColumnIndex];
+      const selected = selectCell?.querySelector("select")?.value;
+      return windColors[selected] || "#e0e0e0";
+    }
+  }
+
+  return "#e0e0e0";
+}
+
 function drawWindMap(svgId) {
   const svg = d3.select(svgId);
   svg.selectAll("*").remove();
@@ -50,66 +76,36 @@ function drawWindMap(svgId) {
 
   const path = d3.geoPath().projection(projection);
 
-  d3.json("https://raw.githubusercontent.com/udit-001/india-maps-data/refs/heads/main/topojson/india.json")
+  d3.json("indian_met_zones.geojson")
     .then(data => {
-      const features = topojson.feature(data, data.objects.states).features;
-
       svg.selectAll("path")
-        .data(features)
+        .data(data.features)
         .enter()
         .append("path")
         .attr("d", path)
         .attr("fill", "#e0e0e0")
         .attr("stroke", "#333")
-        .attr("stroke-width", 0.8);
+        .attr("stroke-width", 0.6);
 
       updateWindMapColors();
     })
     .catch(error => {
       console.error("Map loading error:", error);
-      alert("Map could not load. Please check internet connection or map URL.");
+      alert("Map could not load. Check indian_met_zones.geojson file name/path.");
     });
 }
 
-function getStateColor(stateCode, dayIndex) {
-  const rows = document.querySelectorAll("#wind-table-body tr");
-
-  for (const row of rows) {
-    const state = row.children[0].textContent.trim();
-
-    if (state === stateCode) {
-      const selected = row.children[dayIndex].querySelector("select").value;
-      return windColors[selected] || "#e0e0e0";
-    }
-  }
-
-  return "#e0e0e0";
-}
-
 function updateWindMapColors() {
-  const stateCodeMap = {
-    "Maharashtra": "MH",
-    "Madhya Pradesh": "MP",
-    "Rajasthan": "RJ",
-    "Gujarat": "GJ",
-    "Andhra Pradesh": "AP",
-    "Karnataka": "KA",
-    "Tamil Nadu": "TN"
-  };
-
   d3.selectAll("#windMapDay1 path").attr("fill", function(d) {
-    const code = stateCodeMap[d.properties.st_nm];
-    return code ? getStateColor(code, 2) : "#e0e0e0";
+    return getSubdivisionColor(d.properties.ST_NM, 2);
   });
 
   d3.selectAll("#windMapDay2 path").attr("fill", function(d) {
-    const code = stateCodeMap[d.properties.st_nm];
-    return code ? getStateColor(code, 3) : "#e0e0e0";
+    return getSubdivisionColor(d.properties.ST_NM, 3);
   });
 
   d3.selectAll("#windMapDay3 path").attr("fill", function(d) {
-    const code = stateCodeMap[d.properties.st_nm];
-    return code ? getStateColor(code, 4) : "#e0e0e0";
+    return getSubdivisionColor(d.properties.ST_NM, 4);
   });
 }
 
@@ -128,24 +124,13 @@ function buildLegend() {
   document.getElementById("legendDay3").innerHTML = legendHTML;
 }
 
-function waitForMapsThenDownload() {
-  const mapsReady =
-    document.querySelectorAll("#windMapDay1 path").length > 0 &&
-    document.querySelectorAll("#windMapDay2 path").length > 0 &&
-    document.querySelectorAll("#windMapDay3 path").length > 0;
-
-  if (!mapsReady) {
-    setTimeout(waitForMapsThenDownload, 500);
-    return;
-  }
-
+function downloadPDF() {
   const element = document.getElementById("pdf-area");
 
   const opt = {
     margin: [0.12, 0.12, 0.12, 0.12],
     filename: "Wind_Forecast_Bulletin.pdf",
     image: { type: "jpeg", quality: 0.68 },
-
     html2canvas: {
       scale: 1.05,
       useCORS: true,
@@ -154,14 +139,12 @@ function waitForMapsThenDownload() {
       logging: false,
       scrollY: 0
     },
-
     jsPDF: {
       unit: "in",
       format: "a4",
       orientation: "portrait",
       compress: true
     },
-
     pagebreak: {
       mode: ["css", "legacy"],
       avoid: ["table", ".map-wrapper"]
@@ -169,11 +152,6 @@ function waitForMapsThenDownload() {
   };
 
   html2pdf().set(opt).from(element).save();
-}
-
-function downloadPDF() {
-  window.scrollTo(0, 0);
-  waitForMapsThenDownload();
 }
 
 window.onload = function() {
@@ -185,5 +163,3 @@ window.onload = function() {
   drawWindMap("#windMapDay2");
   drawWindMap("#windMapDay3");
 };
-
-  

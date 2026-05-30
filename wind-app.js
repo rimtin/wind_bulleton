@@ -1,3 +1,39 @@
+const GEO_URLS = [
+  "indian_met_zones.geojson",
+  "./indian_met_zones.geojson",
+  "assets/indian_met_zones.geojson",
+  "./assets/indian_met_zones.geojson",
+  "https://rimtin.github.io/wind_bulletin/indian_met_zones.geojson",
+  "https://raw.githubusercontent.com/rimtin/wind_bulletin/main/indian_met_zones.geojson",
+  "https://cdn.jsdelivr.net/gh/rimtin/wind_bulletin@main/indian_met_zones.geojson",
+  "https://rimtin.github.io/weather_bulletin/indian_met_zones.geojson",
+  "https://raw.githubusercontent.com/rimtin/weather_bulletin/main/indian_met_zones.geojson",
+  "https://cdn.jsdelivr.net/gh/rimtin/weather_bulletin@main/indian_met_zones.geojson"
+];
+
+let cachedGeoJSON = null;
+
+async function loadGeoJSON() {
+  if (cachedGeoJSON) return cachedGeoJSON;
+
+  for (const url of GEO_URLS) {
+    try {
+      console.log("Trying GeoJSON:", url);
+      const data = await d3.json(url);
+
+      if (data && data.features && data.features.length > 0) {
+        console.log("GeoJSON loaded from:", url);
+        cachedGeoJSON = data;
+        return data;
+      }
+    } catch (error) {
+      console.warn("GeoJSON failed:", url, error);
+    }
+  }
+
+  throw new Error("No GeoJSON source could be loaded.");
+}
+
 function createWindDropdown() {
   return `
     <select onchange="updateWindMapColors()">
@@ -8,6 +44,8 @@ function createWindDropdown() {
 
 function buildWindTable() {
   const tbody = document.getElementById("wind-table-body");
+  if (!tbody) return;
+
   tbody.innerHTML = "";
 
   windForecastData.forEach(item => {
@@ -37,27 +75,54 @@ const geoNameMap = {
   "Madhya Maharashtra": "Madhya Maharashtra",
   "Marathwada": "Marathwada",
   "Vidarbha": "Vidarbha",
+
   "West MP": "West Madhya Pradesh",
   "East MP": "East Madhya Pradesh",
+
   "West Rajasthan": "West Rajasthan",
   "East Rajasthan": "East Rajasthan",
+
   "Saurashtra & Kutch": "Saurashtra & Kachh",
   "Gujarat Region": "Gujarat region",
+
   "Andhra Pradesh": "Coastal Andhra Pradesh",
+
   "North Interior Karnataka": "N.I. Karnataka",
   "South Interior Karnataka": "S.I. Karnataka",
+
   "Tamil Nadu": "Tamil Nadu & Puducherry"
 };
 
-function getSubdivisionColor(geoName, dayColumnIndex) {
+function normalizeName(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getGeoNameFromFeature(d) {
+  return (
+    d.properties?.ST_NM ||
+    d.properties?.st_nm ||
+    d.properties?.ST_NAME ||
+    d.properties?.name ||
+    d.properties?.Name ||
+    ""
+  );
+}
+
+function getSubdivisionColor(geoName, dayNumber) {
   const rows = document.querySelectorAll("#wind-table-body tr");
+  const target = normalizeName(geoName);
 
   for (const row of rows) {
     const area = row.getAttribute("data-area");
-    const mappedGeoName = geoNameMap[area];
+    const mappedGeoName = geoNameMap[area] || area;
 
-    if (mappedGeoName === geoName) {
-      const select = row.querySelectorAll("select")[dayColumnIndex - 1];
+    if (normalizeName(mappedGeoName) === target) {
+      const select = row.querySelectorAll("select")[dayNumber - 1];
       const selected = select?.value;
       return windColors[selected] || "#e0e0e0";
     }
@@ -66,7 +131,7 @@ function getSubdivisionColor(geoName, dayColumnIndex) {
   return "#e0e0e0";
 }
 
-function drawWindMap(svgId) {
+async function drawWindMap(svgId) {
   const svg = d3.select(svgId);
   svg.selectAll("*").remove();
 
@@ -77,40 +142,43 @@ function drawWindMap(svgId) {
 
   const path = d3.geoPath().projection(projection);
 
-  d3.json("./indian_met_zones.geojson")
-    .then(data => {
-      if (!data || !data.features) {
-        throw new Error("GeoJSON loaded but features missing.");
-      }
+  try {
+    const data = await loadGeoJSON();
 
-      svg.selectAll("path")
-        .data(data.features)
-        .enter()
-        .append("path")
-        .attr("d", path)
-        .attr("fill", "#e0e0e0")
-        .attr("stroke", "#333")
-        .attr("stroke-width", 0.6);
+    svg.selectAll("path")
+      .data(data.features)
+      .enter()
+      .append("path")
+      .attr("d", path)
+      .attr("fill", "#e0e0e0")
+      .attr("stroke", "#333")
+      .attr("stroke-width", 0.6);
 
-      updateWindMapColors();
-    })
-    .catch(error => {
-      console.error("Map loading error:", error);
-      alert("Map could not load. Open indian_met_zones.geojson directly and check file name/path.");
-    });
+    updateWindMapColors();
+
+  } catch (error) {
+    console.error("Final map loading error:", error);
+
+    svg.append("text")
+      .attr("x", 20)
+      .attr("y", 40)
+      .attr("fill", "red")
+      .attr("font-size", 14)
+      .text("Map could not load. Check GeoJSON file path.");
+  }
 }
 
 function updateWindMapColors() {
   d3.selectAll("#windMapDay1 path").attr("fill", function(d) {
-    return getSubdivisionColor(d.properties.ST_NM, 1);
+    return getSubdivisionColor(getGeoNameFromFeature(d), 1);
   });
 
   d3.selectAll("#windMapDay2 path").attr("fill", function(d) {
-    return getSubdivisionColor(d.properties.ST_NM, 2);
+    return getSubdivisionColor(getGeoNameFromFeature(d), 2);
   });
 
   d3.selectAll("#windMapDay3 path").attr("fill", function(d) {
-    return getSubdivisionColor(d.properties.ST_NM, 3);
+    return getSubdivisionColor(getGeoNameFromFeature(d), 3);
   });
 }
 
@@ -124,9 +192,13 @@ function buildLegend() {
     `).join("")}
   `;
 
-  document.getElementById("legendDay1").innerHTML = legendHTML;
-  document.getElementById("legendDay2").innerHTML = legendHTML;
-  document.getElementById("legendDay3").innerHTML = legendHTML;
+  const l1 = document.getElementById("legendDay1");
+  const l2 = document.getElementById("legendDay2");
+  const l3 = document.getElementById("legendDay3");
+
+  if (l1) l1.innerHTML = legendHTML;
+  if (l2) l2.innerHTML = legendHTML;
+  if (l3) l3.innerHTML = legendHTML;
 }
 
 function downloadPDF() {

@@ -13,6 +13,7 @@ function buildWindTable() {
   windForecastData.forEach(item => {
     item.areas.forEach((area, index) => {
       const tr = document.createElement("tr");
+      tr.setAttribute("data-area", area);
 
       const stateCell = index === 0
         ? `<td rowspan="${item.areas.length}" class="state-cell">${item.state}</td>`
@@ -52,12 +53,12 @@ function getSubdivisionColor(geoName, dayColumnIndex) {
   const rows = document.querySelectorAll("#wind-table-body tr");
 
   for (const row of rows) {
-    const area = row.children[row.children.length - 4]?.textContent.trim();
+    const area = row.getAttribute("data-area");
     const mappedGeoName = geoNameMap[area];
 
     if (mappedGeoName === geoName) {
-      const selectCell = row.children[dayColumnIndex];
-      const selected = selectCell?.querySelector("select")?.value;
+      const select = row.querySelectorAll("select")[dayColumnIndex - 1];
+      const selected = select?.value;
       return windColors[selected] || "#e0e0e0";
     }
   }
@@ -78,6 +79,10 @@ function drawWindMap(svgId) {
 
   d3.json("./indian_met_zones.geojson")
     .then(data => {
+      if (!data || !data.features) {
+        throw new Error("GeoJSON loaded but features missing.");
+      }
+
       svg.selectAll("path")
         .data(data.features)
         .enter()
@@ -91,21 +96,21 @@ function drawWindMap(svgId) {
     })
     .catch(error => {
       console.error("Map loading error:", error);
-      alert("Map could not load. Check indian_met_zones.geojson file name/path.");
+      alert("Map could not load. Open indian_met_zones.geojson directly and check file name/path.");
     });
 }
 
 function updateWindMapColors() {
   d3.selectAll("#windMapDay1 path").attr("fill", function(d) {
-    return getSubdivisionColor(d.properties.ST_NM, 2);
+    return getSubdivisionColor(d.properties.ST_NM, 1);
   });
 
   d3.selectAll("#windMapDay2 path").attr("fill", function(d) {
-    return getSubdivisionColor(d.properties.ST_NM, 3);
+    return getSubdivisionColor(d.properties.ST_NM, 2);
   });
 
   d3.selectAll("#windMapDay3 path").attr("fill", function(d) {
-    return getSubdivisionColor(d.properties.ST_NM, 4);
+    return getSubdivisionColor(d.properties.ST_NM, 3);
   });
 }
 

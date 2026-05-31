@@ -234,10 +234,11 @@ async function drawWindMap(svgId, dayNumber) {
   try {
     const data = await loadGeoJSON();
 
-    const projection = d3.geoMercator()
-      .fitExtent([[25, 25], [width - 25, height - 25]], data);
+    const projection = d3.geoIdentity()
+  .reflectY(true)
+  .fitExtent([[25, 25], [width - 25, height - 25]], data);
 
-    const path = d3.geoPath().projection(projection);
+const path = d3.geoPath().projection(projection);
 
     svg.selectAll("path")
       .data(data.features)

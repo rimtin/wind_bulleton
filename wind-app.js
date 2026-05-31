@@ -71,6 +71,30 @@ function buildWindTable() {
   });
 }
 
+function applyDropdownColor(select) {
+
+  const colors = {
+    "Low Wind Speed (< 3 m/s)"       : "#8DC63F",
+    "Medium Wind Speed (3 to 8 m/s)" : "#FFF200",
+    "High Wind Speed (8 to 11 m/s)"  : "#FF8C00",
+    "Very High Wind Speed (> 11 m/s)": "#FF0000",
+    "Gust / Circulation"             : "#6A00FF"
+  };
+
+  select.style.backgroundColor = colors[select.value] || "#ffffff";
+
+  if (
+    select.value === "Very High Wind Speed (> 11 m/s)" ||
+    select.value === "Gust / Circulation"
+  ) {
+    select.style.color = "#ffffff";
+  } else {
+    select.style.color = "#000000";
+  }
+
+  select.style.fontWeight = "700";
+}
+
 const geoNameMap = {
   "Konkan & Goa": "Konkan & Goa",
   "Madhya Maharashtra": "Madhya Maharashtra",

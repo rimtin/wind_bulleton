@@ -4,7 +4,7 @@ const windColors = {
   "Medium Wind Speed (3 to 8 m/s)": "#FFF200",
   "High Wind Speed (8 to 11 m/s)": "#FF9800",
   "Very High Wind Speed (> 11 m/s)": "#FF1E1E",
-  "Gust / Circulation": "#3F51B5"
+  "Gust / Circulation": "#6200EA"
 };
 
 const windOptions = Object.keys(windColors);

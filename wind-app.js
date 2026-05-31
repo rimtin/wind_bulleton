@@ -5,10 +5,7 @@ const GEO_URLS = [
   "./assets/indian_met_zones.geojson",
   "https://rimtin.github.io/wind_bulletin/indian_met_zones.geojson",
   "https://raw.githubusercontent.com/rimtin/wind_bulletin/main/indian_met_zones.geojson",
-  "https://cdn.jsdelivr.net/gh/rimtin/wind_bulletin@main/indian_met_zones.geojson",
-  "https://rimtin.github.io/weather_bulletin/indian_met_zones.geojson",
-  "https://raw.githubusercontent.com/rimtin/weather_bulletin/main/indian_met_zones.geojson",
-  "https://cdn.jsdelivr.net/gh/rimtin/weather_bulletin@main/indian_met_zones.geojson"
+  "https://cdn.jsdelivr.net/gh/rimtin/wind_bulletin@main/indian_met_zones.geojson"
 ];
 
 let cachedGeoJSON = null;
@@ -33,6 +30,35 @@ async function loadGeoJSON() {
   }
 
   throw new Error("No GeoJSON source could be loaded.");
+}
+
+function updateForecastDate() {
+  const dateEl = document.getElementById("forecast-dated");
+  if (!dateEl) return;
+
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+
+  dateEl.textContent = `Dated: ${formattedDate}`;
+}
+
+function updateIssueTime() {
+  const issueEl = document.getElementById("issue-time");
+  if (!issueEl) return;
+
+  const time = new Date().toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+
+  issueEl.textContent = `Time of Issue: ${time} IST`;
 }
 
 function createWindDropdown() {
@@ -75,15 +101,10 @@ function buildWindTable() {
 }
 
 function applyDropdownColor(select) {
-  const colors = {
-    "Low Wind Speed (< 3 m/s)"       : "#8DC63F",
-    "Medium Wind Speed (3 to 8 m/s)" : "#FFF200",
-    "High Wind Speed (8 to 11 m/s)"  : "#FF8C00",
-    "Very High Wind Speed (> 11 m/s)": "#FF0000",
-    "Gust / Circulation"             : "#6A00FF"
-  };
+  const color = windColors[select.value] || "#ffffff";
 
-  select.style.backgroundColor = colors[select.value] || "#ffffff";
+  select.style.backgroundColor = color;
+  select.style.fontWeight = "700";
 
   if (
     select.value === "Very High Wind Speed (> 11 m/s)" ||
@@ -93,8 +114,6 @@ function applyDropdownColor(select) {
   } else {
     select.style.color = "#000000";
   }
-
-  select.style.fontWeight = "700";
 }
 
 const geoNameMap = {
@@ -102,16 +121,32 @@ const geoNameMap = {
   "Madhya Maharashtra": "Madhya Maharashtra",
   "Marathwada": "Marathwada",
   "Vidarbha": "Vidarbha",
+
   "West MP": "West Madhya Pradesh",
   "East MP": "East Madhya Pradesh",
+
   "West Rajasthan": "West Rajasthan",
   "East Rajasthan": "East Rajasthan",
+
   "Saurashtra & Kutch": "Saurashtra & Kachh",
+  "Saurashtra & Kachh": "Saurashtra & Kachh",
   "Gujarat Region": "Gujarat region",
+
   "Andhra Pradesh": "Coastal Andhra Pradesh",
+  "Coastal Andhra Pradesh": "Coastal Andhra Pradesh",
+  "Rayalaseema": "Rayalaseema",
+
   "North Interior Karnataka": "N.I. Karnataka",
   "South Interior Karnataka": "S.I. Karnataka",
-  "Tamil Nadu": "Tamil Nadu & Puducherry"
+  "N.I. Karnataka": "N.I. Karnataka",
+  "S.I. Karnataka": "S.I. Karnataka",
+
+  "Tamil Nadu": "Tamil Nadu & Puducherry",
+  "Tamil Nadu & Puducherry": "Tamil Nadu & Puducherry",
+
+  "Punjab": "Punjab",
+  "Telangana": "Telangana",
+  "Chhattisgarh": "Chhattisgarh"
 };
 
 function normalizeName(name) {
@@ -119,6 +154,7 @@ function normalizeName(name) {
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/\./g, "")
+    .replace(/kachh/g, "kutch")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -157,47 +193,49 @@ function getSubdivisionColor(geoName, dayNumber) {
   return null;
 }
 
-function addNoForecastPattern(svg) {
+function addNoForecastPattern(svg, patternId) {
   const defs = svg.append("defs");
 
   const pattern = defs.append("pattern")
-    .attr("id", "noForecastPattern")
+    .attr("id", patternId)
     .attr("patternUnits", "userSpaceOnUse")
-    .attr("width", 8)
-    .attr("height", 8)
+    .attr("width", 10)
+    .attr("height", 10)
     .attr("patternTransform", "rotate(45)");
 
   pattern.append("rect")
-    .attr("width", 8)
-    .attr("height", 8)
+    .attr("width", 10)
+    .attr("height", 10)
     .attr("fill", "#ffffff");
 
   pattern.append("line")
     .attr("x1", 0)
     .attr("y1", 0)
     .attr("x2", 0)
-    .attr("y2", 8)
-    .attr("stroke", "#999")
-    .attr("stroke-width", 2);
+    .attr("y2", 10)
+    .attr("stroke", "#777")
+    .attr("stroke-width", 1.4);
 }
 
-async function drawWindMap(svgId) {
+async function drawWindMap(svgId, dayNumber) {
   const svg = d3.select(svgId);
   svg.selectAll("*").remove();
 
   const width = 860;
   const height = 520;
+  const patternId = `noForecastPatternDay${dayNumber}`;
 
-  svg.attr("viewBox", `0 0 ${width} ${height}`);
+  svg
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("preserveAspectRatio", "xMidYMid meet");
 
-  addNoForecastPattern(svg);
+  addNoForecastPattern(svg, patternId);
 
   try {
     const data = await loadGeoJSON();
 
-    const projection = d3.geoIdentity()
-      .reflectY(true)
-      .fitExtent([[30, 30], [width - 30, height - 30]], data);
+    const projection = d3.geoMercator()
+      .fitExtent([[25, 25], [width - 25, height - 25]], data);
 
     const path = d3.geoPath().projection(projection);
 
@@ -206,9 +244,10 @@ async function drawWindMap(svgId) {
       .enter()
       .append("path")
       .attr("d", path)
-      .attr("fill", "url(#noForecastPattern)")
+      .attr("fill", `url(#${patternId})`)
       .attr("stroke", "#333")
-      .attr("stroke-width", 0.6);
+      .attr("stroke-width", 0.6)
+      .attr("data-geo-name", d => getGeoNameFromFeature(d));
 
     updateWindMapColors();
 
@@ -225,52 +264,47 @@ async function drawWindMap(svgId) {
 }
 
 function updateWindMapColors() {
-  d3.selectAll("#windMapDay1 path").attr("fill", function(d) {
-    const color = getSubdivisionColor(getGeoNameFromFeature(d), 1);
-    return color || "url(#noForecastPattern)";
-  });
+  updateSingleMap("#windMapDay1", 1);
+  updateSingleMap("#windMapDay2", 2);
+  updateSingleMap("#windMapDay3", 3);
+}
 
-  d3.selectAll("#windMapDay2 path").attr("fill", function(d) {
-    const color = getSubdivisionColor(getGeoNameFromFeature(d), 2);
-    return color || "url(#noForecastPattern)";
-  });
-
-  d3.selectAll("#windMapDay3 path").attr("fill", function(d) {
-    const color = getSubdivisionColor(getGeoNameFromFeature(d), 3);
-    return color || "url(#noForecastPattern)";
+function updateSingleMap(svgId, dayNumber) {
+  d3.selectAll(`${svgId} path`).attr("fill", function(d) {
+    const color = getSubdivisionColor(getGeoNameFromFeature(d), dayNumber);
+    return color || `url(#noForecastPatternDay${dayNumber})`;
   });
 }
 
 function buildLegend() {
   const legendHTML = `
     ${windOptions.map(option => `
-      <div>
+      <div class="legend-item">
         <span class="legend-box" style="background:${windColors[option]}"></span>
         ${option}
       </div>
     `).join("")}
-    <div>
+    <div class="legend-item">
       <span class="legend-box no-forecast-box"></span>
       No Forecast / Not Used
     </div>
   `;
 
-  const l1 = document.getElementById("legendDay1");
-  const l2 = document.getElementById("legendDay2");
-  const l3 = document.getElementById("legendDay3");
-
-  if (l1) l1.innerHTML = legendHTML;
-  if (l2) l2.innerHTML = legendHTML;
-  if (l3) l3.innerHTML = legendHTML;
+  ["legendDay1", "legendDay2", "legendDay3"].forEach(id => {
+    const legend = document.getElementById(id);
+    if (legend) legend.innerHTML = legendHTML;
+  });
 }
 
 function downloadPDF() {
+  updateIssueTime();
+
   const element = document.getElementById("pdf-area");
 
   const opt = {
     margin: [0.12, 0.12, 0.12, 0.12],
     filename: "Wind_Forecast_Bulletin.pdf",
-    image: { type: "jpeg", quality: 0.68 },
+    image: { type: "jpeg", quality: 0.7 },
     html2canvas: {
       scale: 1.05,
       useCORS: true,
@@ -296,10 +330,11 @@ function downloadPDF() {
 
 window.onload = function() {
   updateForecastDate();
+  updateIssueTime();
   buildWindTable();
   buildLegend();
 
-  drawWindMap("#windMapDay1");
-  drawWindMap("#windMapDay2");
-  drawWindMap("#windMapDay3");
+  drawWindMap("#windMapDay1", 1);
+  drawWindMap("#windMapDay2", 2);
+  drawWindMap("#windMapDay3", 3);
 };

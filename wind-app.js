@@ -37,8 +37,8 @@ async function loadGeoJSON() {
 
 function createWindDropdown() {
   return `
-    <select onchange="updateWindMapColors()">
-      ${windOptions.map(option => `<option>${option}</option>`).join("")}
+    <select onchange="updateWindMapColors(); applyDropdownColor(this)">
+      ${windOptions.map(option => `<option value="${option}">${option}</option>`).join("")}
     </select>
   `;
 }
@@ -69,10 +69,12 @@ function buildWindTable() {
       tbody.appendChild(tr);
     });
   });
+
+  document.querySelectorAll("#wind-table-body select")
+    .forEach(select => applyDropdownColor(select));
 }
 
 function applyDropdownColor(select) {
-
   const colors = {
     "Low Wind Speed (< 3 m/s)"       : "#8DC63F",
     "Medium Wind Speed (3 to 8 m/s)" : "#FFF200",

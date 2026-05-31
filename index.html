@@ -19,7 +19,11 @@
       <section class="pdf-section">
         <h1 class="center-title">Wind Forecast Bulletin</h1>
         <h2 id="forecast-date" class="center-date"></h2>
-        <h3 id="issue-time" class="issue-time"></h3>
+
+        <h3 class="issue-time">
+          Forecast Issued:
+          <input type="text" value="Enter issue date and time" class="issue-input">
+        </h3>
 
         <h3 class="table-title">Wind Speed Classification</h3>
         <table class="wind-info-table">
@@ -46,9 +50,9 @@
             <tr>
               <th>State</th>
               <th>Geographical Area</th>
-              <th><input type="text" value="1" class="day-header-input"></th>
-              <th><input type="text" value="2" class="day-header-input"></th>
-              <th><input type="text" value="3" class="day-header-input"></th>
+              <th><input type="text" value="Day 1" class="day-header-input"></th>
+              <th><input type="text" value="Day 2" class="day-header-input"></th>
+              <th><input type="text" value="Day 3" class="day-header-input"></th>
             </tr>
           </thead>
           <tbody id="wind-table-body"></tbody>
